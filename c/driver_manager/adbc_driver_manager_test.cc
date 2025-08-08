@@ -458,6 +458,68 @@ class DriverManifest : public ::testing::Test {
   toml::table simple_manifest;
 };
 
+TEST_F(DriverManifest, TestErrors) {
+  // There are three areas where errors can come from,
+  // 1. AbdcFindAndLoadDriver
+  // 2. GetDriverInfo
+  // 3. FindDriver
+
+  // Test individual error messages:
+
+  // Only ADBC 1.0.0 and 1.1.0 are supported
+  ASSERT_THAT(AdbcFindLoadDriver(nullptr, nullptr, 1001001, ADBC_LOAD_FLAG_DEFAULT,
+                                 &driver, &error),
+              Not(IsOkStatus(&error)));
+  ASSERT_THAT(error.message,
+              ::testing::HasSubstr("Only ADBC 1.0.0 and 1.1.0 are supported"));
+
+  // Driver name is null
+  ASSERT_THAT(AdbcFindLoadDriver(nullptr, nullptr, ADBC_VERSION_1_1_0,
+                                 ADBC_LOAD_FLAG_DEFAULT, &driver, &error),
+              Not(IsOkStatus(&error)));
+  ASSERT_THAT(error.message, ::testing::HasSubstr("Driver name is null"));
+
+  // Driver name is empty
+  ASSERT_THAT(AdbcFindLoadDriver("", nullptr, ADBC_VERSION_1_1_0, ADBC_LOAD_FLAG_DEFAULT,
+                                 &driver, &error),
+              Not(IsOkStatus(&error)));
+  ASSERT_THAT(error.message, ::testing::HasSubstr("Driver name is empty"));
+
+  // Driver path is relative and relative paths are not allowed
+  ASSERT_THAT(AdbcFindLoadDriver("./sqlite.toml", nullptr, ADBC_VERSION_1_1_0,
+                                 !ADBC_LOAD_FLAG_ALLOW_RELATIVE_PATHS, &driver, &error),
+              Not(IsOkStatus(&error)));
+  ASSERT_THAT(
+      error.message,
+      ::testing::HasSubstr("Driver path is relative and relative paths are not allowed"));
+
+  // File could not be opened for reading
+  ASSERT_THAT(AdbcFindLoadDriver("./foo.toml", nullptr, ADBC_VERSION_1_1_0,
+                                 ADBC_LOAD_FLAG_ALLOW_RELATIVE_PATHS, &driver, &error),
+              Not(IsOkStatus(&error)));
+  ASSERT_THAT(error.message,
+              ::testing::HasSubstr("File could not be opened for reading"));
+
+  // TODO: More to do here
+  // ASSERT_THAT(AdbcFindLoadDriver("sqlite", nullptr, ADBC_VERSION_1_1_0,
+  //  ADBC_LOAD_FLAG_DEFAULT, &driver, &error),
+  // Not(IsOkStatus(&error)));
+  // ASSERT_THAT(error.message, ::testing::HasSubstr("xxx"));
+
+  // Driver name has unrecognized extension
+  std::filesystem::path dotbin_path = temp_dir / "sqlite.bin";
+  std::ofstream test_manifest_file(dotbin_path);
+  ASSERT_TRUE(test_manifest_file.is_open());
+  test_manifest_file << "anything";
+  test_manifest_file.close();
+  ASSERT_THAT(AdbcFindLoadDriver(dotbin_path.c_str(), nullptr, ADBC_VERSION_1_1_0,
+                                 ADBC_LOAD_FLAG_DEFAULT, &driver, &error),
+              Not(IsOkStatus(&error)));
+  ASSERT_THAT(error.message,
+              ::testing::HasSubstr("Driver name has unrecognized extension: nib"));
+  // TODO(amoeba): Remove dotbin_path file and assert we did
+}
+
 TEST_F(DriverManifest, LoadDriverEnv) {
   ASSERT_THAT(AdbcFindLoadDriver("sqlite", nullptr, ADBC_VERSION_1_1_0,
                                  ADBC_LOAD_FLAG_DEFAULT, &driver, &error),

@@ -354,25 +354,28 @@ struct ManagedLibrary {
 
     std::filesystem::path driver_path(driver_name);
     const bool allow_relative_paths = load_options & ADBC_LOAD_FLAG_ALLOW_RELATIVE_PATHS;
-    if (driver_path.has_extension()) {
-      if (driver_path.is_relative() && !allow_relative_paths) {
-        SetError(error, "Driver path is relative and relative paths are not allowed");
-        return ADBC_STATUS_INVALID_ARGUMENT;
-      }
 
+    if (driver_path.is_relative() && !allow_relative_paths) {
+      SetError(error, "Driver path is relative and relative paths are not allowed");
+      return ADBC_STATUS_INVALID_ARGUMENT;
+    }
+
+    if (driver_path.has_extension()) {
       if (HasExtension(driver_path, ".toml")) {
         // if the extension is .toml, attempt to load the manifest
-        // erroring if we fail
+        // otherwise, continue processing
 
         auto status = LoadDriverManifest(driver_path, info, error);
         if (status == ADBC_STATUS_OK) {
           return Load(info.lib_path.c_str(), error);
         }
+
         return status;
       }
 
       // if the extension is not .toml, then just try to load the provided
       // path as if it was an absolute path to a driver library
+      // TODO(amoeba): Commented out for testing???
       return Load(driver_path.c_str(), error);
     }
 
@@ -394,11 +397,6 @@ struct ManagedLibrary {
     }
 
     if (driver_path.has_extension()) {
-      if (driver_path.is_relative() && !allow_relative_paths) {
-        SetError(error, "Driver path is relative and relative paths are not allowed");
-        return ADBC_STATUS_INVALID_ARGUMENT;
-      }
-
 #if defined(_WIN32)
       static const std::string kPlatformLibrarySuffix = ".dll";
 #elif defined(__APPLE__)
