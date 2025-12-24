@@ -38,6 +38,8 @@ class NativeAdbc {
 
   static native void statementSetSqlQuery(long handle, String query) throws AdbcException;
 
+  static native void statementSetOption(long handle, String key, String value) throws AdbcException;
+
   static native void statementBind(long handle, long values, long schema) throws AdbcException;
 
   // TODO(lidavidm): we need a way to bind an ArrowReader (or some other suitable interface that

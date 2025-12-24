@@ -100,6 +100,13 @@ public enum JniLoader {
     NativeAdbc.statementSetSqlQuery(statement.getStatementHandle(), query);
   }
 
+  public void statementSetOption(NativeStatementHandle statement, String key, Object value)
+      throws AdbcException {
+    // For now, convert the value to String. In the future, we may need to handle other types.
+    String stringValue = value == null ? null : value.toString();
+    NativeAdbc.statementSetOption(statement.getStatementHandle(), key, stringValue);
+  }
+
   public void statementBind(NativeStatementHandle statement, ArrowArray batch, ArrowSchema schema)
       throws AdbcException {
     NativeAdbc.statementBind(

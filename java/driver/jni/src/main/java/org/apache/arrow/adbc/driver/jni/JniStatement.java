@@ -45,6 +45,11 @@ public class JniStatement implements AdbcStatement {
   }
 
   @Override
+  public void setOption(String key, Object value) throws AdbcException {
+    JniLoader.INSTANCE.statementSetOption(handle, key, value);
+  }
+
+  @Override
   public void bind(VectorSchemaRoot root) throws AdbcException {
     try (final ArrowArray batch = ArrowArray.allocateNew(allocator);
         final ArrowSchema schema = ArrowSchema.allocateNew(allocator)) {

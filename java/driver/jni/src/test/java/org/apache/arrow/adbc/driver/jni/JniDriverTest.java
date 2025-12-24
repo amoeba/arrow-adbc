@@ -76,6 +76,44 @@ class JniDriverTest {
   }
 
   @Test
+  void statementSetOption() throws Exception {
+    try (final BufferAllocator allocator = new RootAllocator()) {
+      JniDriver driver = new JniDriver(allocator);
+      Map<String, Object> parameters = new HashMap<>();
+      JniDriver.PARAM_DRIVER.set(parameters, "adbc_driver_sqlite");
+
+      try (final AdbcDatabase db = driver.open(parameters);
+          final AdbcConnection conn = db.connect();
+          final AdbcStatement stmt = conn.createStatement()) {
+        stmt.setOption("adbc.sqlite.query.batch_rows", "2048");
+      }
+    }
+  }
+
+  @Test
+  void statementSetOptionNotSupported() throws Exception {
+    try (final BufferAllocator allocator = new RootAllocator()) {
+      JniDriver driver = new JniDriver(allocator);
+      Map<String, Object> parameters = new HashMap<>();
+      JniDriver.PARAM_DRIVER.set(parameters, "adbc_driver_sqlite");
+
+      try (final AdbcDatabase db = driver.open(parameters);
+          final AdbcConnection conn = db.connect();
+          final AdbcStatement stmt = conn.createStatement()) {
+        AdbcException exc =
+            assertThrows(
+                AdbcException.class,
+                () -> {
+                  stmt.setOption("definitely.not.supported", "true");
+                });
+        assertThat(exc.getStatus()).isEqualTo(AdbcStatusCode.NOT_IMPLEMENTED);
+        assertThat(exc)
+            .hasMessageContaining("Unknown statement option")
+            .hasMessageContaining("definitely.not.supported");
+      }
+    }
+  }
+  @Test
   void queryLarge() throws Exception {
     try (final BufferAllocator allocator = new RootAllocator()) {
       JniDriver driver = new JniDriver(allocator);

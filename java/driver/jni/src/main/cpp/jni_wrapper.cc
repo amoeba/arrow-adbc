@@ -375,6 +375,23 @@ Java_org_apache_arrow_adbc_driver_jni_impl_NativeAdbc_statementSetSqlQuery(
 }
 
 JNIEXPORT void JNICALL
+Java_org_apache_arrow_adbc_driver_jni_impl_NativeAdbc_statementSetOption(
+    JNIEnv* env, [[maybe_unused]] jclass self, jlong handle, jstring key, jstring value) {
+  try {
+    struct AdbcError error = ADBC_ERROR_INIT;
+    auto* ptr = reinterpret_cast<struct AdbcStatement*>(static_cast<uintptr_t>(handle));
+    std::optional<std::string> value_str = MaybeGetJniString(env, value);
+    JniStringView key_str(env, key);
+    CHECK_ADBC_ERROR(AdbcStatementSetOption(
+                         ptr, key_str.value,
+                         value_str.has_value() ? value_str->c_str() : nullptr, &error),
+                     error);
+  } catch (const AdbcException& e) {
+    e.ThrowJavaException(env);
+  }
+}
+
+JNIEXPORT void JNICALL
 Java_org_apache_arrow_adbc_driver_jni_impl_NativeAdbc_statementBind(
     JNIEnv* env, [[maybe_unused]] jclass self, jlong handle, jlong values, jlong schema) {
   try {
