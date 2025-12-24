@@ -113,6 +113,7 @@ class JniDriverTest {
       }
     }
   }
+
   @Test
   void queryLarge() throws Exception {
     try (final BufferAllocator allocator = new RootAllocator()) {
